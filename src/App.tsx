@@ -14,6 +14,7 @@ import TimerRing from './components/TimerRing';
 import PhaseList from './components/PhaseList';
 import HistoryBarChart from './components/HistoryBarChart';
 import StreakCard from './components/StreakCard';
+import PastFastsList from './components/PastFastsList';
 import { useStore } from './state/store';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
@@ -159,6 +160,12 @@ export default function App() {
           </Card>
         </Stack>
       </Container>
+
+      {/* Past fasts (editable) */}
+      <Box sx={{ mt: 2 }}>
+          <PastFastsList />
+      </Box>
+
 
       {/* Settings, Import, Edit Start dialogs (unchanged except in saveEdit) */}
       <Dialog open={openSettings} onClose={() => setOpenSettings(false)} fullWidth>
