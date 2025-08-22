@@ -34,17 +34,23 @@ export const useStore = create<Store>((set, get) => ({
     const now = Date.now();
     const newFast: Fast = { id: nanoid(), startAt: now, targetHours, plan };
     const fasts = [...get().fasts, newFast];
-    set({ fasts, current: newFast });
-    saveFasts(fasts);
+    // clear eating timer
+    const s = { ...get().settings, eatingStartAt: undefined, eatingTargetHours: undefined };
+    set({ fasts, current: newFast, settings: s });
+    saveFasts(fasts); saveSettings(s);
   },
 
   endFast: () => {
     const cur = get().current;
     if (!cur) return;
-    const ended = { ...cur, endAt: Date.now() };
+    const now = Date.now();
+    const ended = { ...cur, endAt: now };
     const fasts = get().fasts.map(f => (f.id === cur.id ? ended : f));
-    set({ fasts, current: undefined });
-    saveFasts(fasts);
+    // start eating timer: target window = 24 - fasting hours
+    const eatTarget = Math.max(1, 24 - (cur.targetHours || 16));
+    const s = { ...get().settings, eatingStartAt: now, eatingTargetHours: eatTarget };
+    set({ fasts, current: undefined, settings: s });
+    saveFasts(fasts); saveSettings(s);
   },
 
   updateSettings: (p) => {
@@ -62,7 +68,7 @@ export const useStore = create<Store>((set, get) => ({
     saveFasts(fasts);
   },
 
-  // NEW: edit previous fasts (both start & end)
+  // edit any historical fast
   updateFastTimes: (id, startAt, endAt) => {
     const fasts = get().fasts.map(f => (f.id === id ? { ...f, startAt, endAt } : f));
     set({ fasts, current: fasts.find(f => !f.endAt) });
