@@ -1,3 +1,8 @@
+// add at the very top
+import { registerSW } from 'virtual:pwa-register';
+
+// register & apply updates instantly
+registerSW({ immediate: true });
 
 import React from 'react';
 import ReactDOM from 'react-dom/client';
