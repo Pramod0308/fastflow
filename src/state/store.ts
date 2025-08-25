@@ -69,11 +69,34 @@ export const useStore = create<Store>((set, get) => ({
   },
 
   // edit any historical fast
-  updateFastTimes: (id, startAt, endAt) => {
-    const fasts = get().fasts.map(f => (f.id === id ? { ...f, startAt, endAt } : f));
-    set({ fasts, current: fasts.find(f => !f.endAt) });
-    saveFasts(fasts);
-  },
+updateFastTimes: (id, startAt, endAt) => {
+  const fasts = get().fasts.map(f => (f.id === id ? { ...f, startAt, endAt } : f));
+  const current = fasts.find(f => !f.endAt);
+
+  // Re-align eating window when not fasting:
+  let settings = get().settings;
+  if (!current) {
+    const latest = fasts
+      .filter(f => f.endAt)
+      .sort((a, b) => (b.endAt! - a.endAt!))[0];
+
+    if (latest) {
+      settings = {
+        ...settings,
+        eatingStartAt: latest.endAt,                         // start of eating = last endAt
+        eatingTargetHours: Math.max(1, 24 - (latest.targetHours || 16)) // e.g., 16/8 -> 8
+      };
+    } else {
+      // no completed fasts -> clear eating timer
+      settings = { ...settings, eatingStartAt: undefined, eatingTargetHours: undefined };
+    }
+    saveSettings(settings);
+  }
+
+  set({ fasts, current, settings });
+  saveFasts(fasts);
+},
+
 
   exportJson: () => JSON.stringify({ fasts: get().fasts, settings: get().settings }, null, 2),
 
