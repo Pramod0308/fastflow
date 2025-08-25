@@ -9,6 +9,7 @@ import {
   CartesianGrid,
   ReferenceLine,
   Rectangle,
+  Label,
 } from 'recharts';
 
 type Point = { name: string; hours: number };
@@ -35,17 +36,14 @@ function FancyTooltip({ active, payload, label }: any) {
 
 export default function HistoryBarChart({
   data,
-  showLines = [16, 20],
 }: {
   data: Point[];
-  showLines?: number[];
 }) {
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
 
-  // Ensure the chart always shows at least up to 24h, but expands if needed
+  // Keep chart up to at least 24h, round to nearest 2
   const yMax = useMemo(() => {
     const max = Math.max(24, ...data.map((d) => d.hours));
-    // round up to nearest 2
     return Math.ceil((max + 1) / 2) * 2;
   }, [data]);
 
@@ -77,38 +75,33 @@ export default function HistoryBarChart({
           </defs>
 
           {/* Axes */}
-          <XAxis
-            dataKey="name"
-            tick={{ fontSize: 12 }}
-            axisLine={false}
-            tickLine={false}
-          />
-          <YAxis
-            width={28}
-            domain={[0, yMax]}
-            allowDecimals={false}
-            tick={{ fontSize: 12 }}
-            axisLine={false}
-            tickLine={false}
-          />
+          <XAxis dataKey="name" tick={{ fontSize: 12 }} axisLine={false} tickLine={false} />
+          {/* Hide Y-axis tick labels completely */}
+          <YAxis hide domain={[0, yMax]} />
 
-          {/* Goal lines */}
-          {showLines.map((y, i) => (
-            <ReferenceLine
-              key={y}
-              y={y}
-              stroke={i === 0 ? 'rgba(0,137,123,.55)' : 'rgba(255,112,67,.7)'}
-              strokeDasharray="4 4"
-              ifOverflow="extendDomain"
-              label={{
-                value: `${y}h`,
-                position: 'right',
-                fill: i === 0 ? 'rgba(0,137,123,.9)' : 'rgba(255,112,67,.95)',
-                fontSize: 12,
-                style: { fontWeight: 800 },
-              }}
+          {/* 16h goal line */}
+          <ReferenceLine y={16} stroke="rgba(0,137,123,.55)" strokeDasharray="4 4" ifOverflow="extendDomain">
+            <Label
+              position="right"
+              value="16h"
+              fill="rgba(0,137,123,.9)"
+              fontSize={12}
+              fontWeight={800}
+              offset={6}
             />
-          ))}
+          </ReferenceLine>
+
+          {/* 20h goal line */}
+          <ReferenceLine y={20} stroke="rgba(255,112,67,.7)" strokeDasharray="4 4" ifOverflow="extendDomain">
+            <Label
+              position="right"
+              value="20h"
+              fill="rgba(255,112,67,.95)"
+              fontSize={12}
+              fontWeight={800}
+              offset={6}
+            />
+          </ReferenceLine>
 
           {/* Tooltip */}
           <Tooltip cursor={{ fill: 'rgba(0,0,0,.05)' }} content={<FancyTooltip />} />
