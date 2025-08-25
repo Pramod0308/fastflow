@@ -1,15 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Chip,
   IconButton,
   List,
   ListItem,
   ListItemText,
   Stack,
-  Typography,
+  Chip,
   ListItemIcon,
+  Typography,
 } from '@mui/material';
-import EditIcon from '@mui/icons-material/Edit';
+  import EditIcon from '@mui/icons-material/Edit';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import dayjs from 'dayjs';
@@ -28,16 +28,10 @@ export default function PastFastsList() {
 
   return (
     <>
-      <Stack direction="row" alignItems="center" gap={1} sx={{ mb: 1 }}>
-        <Typography variant="subtitle1" sx={{ fontWeight: 800 }}>History (edit previous fasts)</Typography>
-        <Chip size="small" label={`${past.length}`} />
-      </Stack>
-
       <List dense sx={{ px: 0 }}>
         {past.map((f, i) => {
           const durH = ((f.endAt! - f.startAt) / 3600000).toFixed(1);
           const dayBadge = dayjs(f.endAt!).format('ddd');
-
           return (
             <ListItem
               key={f.id}
@@ -109,7 +103,6 @@ export default function PastFastsList() {
             </ListItem>
           );
         })}
-
         {past.length === 0 && (
           <Typography variant="body2" color="text.secondary">No past fasts yet.</Typography>
         )}
