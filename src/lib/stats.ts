@@ -14,7 +14,41 @@ export function last7DaysBuckets(fasts:{startAt:number;endAt?:number}[]){
  for(const f of fasts){ if(!f.endAt) continue; const end=dayjs(f.endAt); const dayIndex=end.startOf('day').diff(start,'day'); if(dayIndex>=0 && dayIndex<7){ buckets[dayIndex].totalMs+=Math.max(0,f.endAt-f.startAt);} }
  return buckets.map(b=>({name:b.date.format('ddd'),hours:+(b.totalMs/3600000).toFixed(1)}));
 }
-export function computeStreak(fasts:{endAt?:number;startAt:number}[],minHours=12){
- const done=fasts.filter(f=>f.endAt).map(f=>({end:dayjs(f.endAt!),hours:(f.endAt!-f.startAt)/3600000}));
- const byDay=new Map<string,boolean>(); for(const f of done){const key=f.end.startOf('day').format('YYYY-MM-DD'); const ok=(byDay.get(key)??false)|| f.hours>=minHours; byDay.set(key,ok);} let streak=0; let day=dayjs().startOf('day'); while(byDay.get(day.format('YYYY-MM-DD'))){streak++; day=day.subtract(1,'day');} return streak;
+// OLD: export function computeStreak(fasts: { endAt?: number; startAt: number }[], minHours = 12) { ... }
+
+export function computeStreak(
+  fasts: { endAt?: number; startAt: number }[],
+  minHours = 12,
+  ongoingMs = 0            // NEW: ms of the current ongoing fast (0 if none)
+) {
+  const dayjs = (await import('dayjs')).default; // keep your existing dayjs import if file already has it
+  // Build a set of days that have a qualifying *completed* fast
+  const byDay = new Map<string, boolean>();
+  for (const f of fasts) {
+    if (!f.endAt) continue;
+    const hours = (f.endAt - f.startAt) / 3600000;
+    if (hours >= minHours) {
+      const key = dayjs(f.endAt).startOf('day').format('YYYY-MM-DD');
+      byDay.set(key, true);
+    }
+  }
+
+  // If ongoing fast already qualifies, mark *today* as hit
+  if (ongoingMs / 3600000 >= minHours) {
+    byDay.set(dayjs().startOf('day').format('YYYY-MM-DD'), true);
+  }
+
+  // If today isn't qualified, start from *yesterday* so streak doesn’t drop in the morning
+  let day = dayjs().startOf('day');
+  if (!byDay.get(day.format('YYYY-MM-DD'))) {
+    day = day.subtract(1, 'day');
+  }
+
+  let streak = 0;
+  while (byDay.get(day.format('YYYY-MM-DD'))) {
+    streak++;
+    day = day.subtract(1, 'day');
+  }
+  return streak;
 }
+
