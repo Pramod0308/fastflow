@@ -48,7 +48,7 @@ export default function App() {
 
   // Stats + stage
   const historyData = useMemo(() => last7DaysBuckets(fasts), [fasts]);
-  const streak = useMemo(() => computeStreak(fasts, 12, elapsedMs), [fasts, elapsedMs]);
+  const streak = useMemo(() => computeStreak(fasts, 16, 0), [fasts]);
   const stage = useMemo(() => {
     const reached = PHASES.filter(p => hours >= p.hours);
     return reached[reached.length - 1];
