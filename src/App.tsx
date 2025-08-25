@@ -35,7 +35,7 @@ export default function App(){
   const eatingElapsedText = prettyHms(eatingElapsedMs);
   const eatingTarget = settings.eatingTargetHours || 8;
 
-  const historyData=useMemo(()=>last7DaysBuckets(fasts),[fasts]); const streak=useMemo(()=>computeStreak(fasts,12),[fasts]);
+  const historyData=useMemo(()=>last7DaysBuckets(fasts),[fasts]); const streak = useMemo(() => computeStreak(fasts, 12, elapsedMs), [fasts, elapsedMs]);
   const stage = useMemo(()=>{ const reached=PHASES.filter(p=>hours>=p.hours); return reached[reached.length-1]; },[hours]);
 
   const [anchor,setAnchor]=useState<null|HTMLElement>(null); const openMenu=(e:any)=>setAnchor(e.currentTarget); const closeMenu=()=>setAnchor(null);
