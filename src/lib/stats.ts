@@ -40,30 +40,31 @@ export function last7DaysBuckets(fasts: { startAt: number; endAt?: number }[]) {
   return buckets.map((b) => ({ name: b.date.format('ddd'), hours: +(b.totalMs / 3_600_000).toFixed(1) }));
 }
 
-/** Current streak: consecutive days up to today with a completed fast ≥ minHours. */
+// REPLACE the existing computeStreak with this version
 export function computeStreak(
   fasts: { endAt?: number; startAt: number }[],
-  minHours = 16,
-  _ongoingMs = 0 // ignored—completed only
+  minHours = 16
 ) {
-  const byDay = new Map<string, boolean>();
+  const byDay = new Set<string>();
   for (const f of fasts) {
     if (!f.endAt) continue;
     const hours = (f.endAt - f.startAt) / 3_600_000;
     if (hours >= minHours) {
-      const key = dayjs(f.endAt).startOf('day').format('YYYY-MM-DD');
-      byDay.set(key, true);
+      byDay.add(dayjs(f.endAt).startOf('day').format('YYYY-MM-DD'));
     }
   }
 
-  let day = dayjs().startOf('day');
+  const today = dayjs().startOf('day');
+  let day = byDay.has(today.format('YYYY-MM-DD')) ? today : today.subtract(1, 'day');
+
   let streak = 0;
-  while (byDay.get(day.format('YYYY-MM-DD'))) {
+  while (byDay.has(day.format('YYYY-MM-DD'))) {
     streak++;
     day = day.subtract(1, 'day');
   }
   return streak;
 }
+
 
 /** Best streak ever: longest run of consecutive days (anywhere in history) with a completed fast ≥ minHours. */
 export function computeBestStreak(
