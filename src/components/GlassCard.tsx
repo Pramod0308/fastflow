@@ -1,30 +1,22 @@
-import React, { useState } from 'react';
-import {
-  Card,
-  CardContent,
-  Collapse,
-  IconButton,
-  Stack,
-  Typography,
-} from '@mui/material';
+import React, { useState, useRef, useLayoutEffect } from 'react';
+import { Card, CardContent, Collapse, IconButton, Stack, Typography, Box } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
-type GlassCardProps = {
+type Props = {
   title: string;
   children: React.ReactNode;
-  /** panel starts expanded by default */
   defaultExpanded?: boolean;
-  /** optional right-side header content (e.g., an icon or chip) */
   right?: React.ReactNode;
 };
 
-export default function GlassCard({
-  title,
-  children,
-  defaultExpanded = true,
-  right,
-}: GlassCardProps) {
+export default function GlassCard({ title, children, defaultExpanded = true, right }: Props) {
   const [open, setOpen] = useState(defaultExpanded);
+  const rightRef = useRef<HTMLDivElement>(null);
+  const [rightW, setRightW] = useState(40);
+
+  useLayoutEffect(() => {
+    setRightW(rightRef.current?.getBoundingClientRect().width ?? 40);
+  }, [right]);
 
   return (
     <Card
@@ -38,44 +30,44 @@ export default function GlassCard({
         backdropFilter: 'blur(14px) saturate(120%)',
       }}
     >
-      {/* Header */}
-      <Stack
-        direction="row"
-        alignItems="center"
-        justifyContent="space-between"
-        sx={{ px: 2, py: 1.5, minHeight: 52, gap: 1 }}
-      >
+      <Box sx={{ position: 'relative', px: 2, py: 1.5, minHeight: 52 }}>
+        {/* left spacer to keep title perfectly centered */}
+        <Box sx={{ position: 'absolute', left: 8, top: 8, width: rightW, height: 36 }} />
+        {/* centered, stylized title */}
         <Typography
           variant="subtitle1"
           sx={{
-            fontWeight: 800,
-            flex: 1,                // use available width
-            lineHeight: 1.3,        // prevent clipping
-            whiteSpace: 'normal',   // allow wrapping
-            wordBreak: 'break-word',
-            overflow: 'visible',
+            fontWeight: 900,
+            textAlign: 'center',
+            letterSpacing: 0.5,
+            background: 'linear-gradient(90deg,#00897B,#26C6DA)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            userSelect: 'none',
           }}
         >
           {title}
         </Typography>
-
-        <Stack direction="row" gap={1} alignItems="center" sx={{ flexShrink: 0 }}>
+        {/* right controls */}
+        <Stack
+          ref={rightRef}
+          direction="row"
+          gap={1}
+          alignItems="center"
+          sx={{ position: 'absolute', right: 8, top: 8 }}
+        >
           {right}
           <IconButton
             size="small"
             onClick={() => setOpen(!open)}
-            sx={{
-              transform: open ? 'rotate(180deg)' : 'rotate(0)',
-              transition: '0.2s transform',
-            }}
+            sx={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: '0.2s transform' }}
             aria-label={open ? 'Collapse' : 'Expand'}
           >
             <ExpandMoreIcon />
           </IconButton>
         </Stack>
-      </Stack>
+      </Box>
 
-      {/* Body */}
       <Collapse in={open} timeout="auto" unmountOnExit>
         <CardContent sx={{ pt: 0 }}>{children}</CardContent>
       </Collapse>
