@@ -40,20 +40,13 @@ export function last7DaysBuckets(fasts: { startAt: number; endAt?: number }[]) {
   return buckets.map((b) => ({ name: b.date.format('ddd'), hours: +(b.totalMs / 3_600_000).toFixed(1) }));
 }
 
-/**
- * Streak counts consecutive days with a qualifying fast (>= minHours).
- * If there is an ongoing fast today that already meets the threshold,
- * today is counted; otherwise we start counting from yesterday so the
- * streak doesn’t drop to 0 every morning.
- */
+/** Current streak: consecutive days up to today with a completed fast ≥ minHours. */
 export function computeStreak(
   fasts: { endAt?: number; startAt: number }[],
-  minHours = 12,
-  ongoingMs = 0
+  minHours = 16,
+  _ongoingMs = 0 // ignored—completed only
 ) {
   const byDay = new Map<string, boolean>();
-
-  // Completed fasts
   for (const f of fasts) {
     if (!f.endAt) continue;
     const hours = (f.endAt - f.startAt) / 3_600_000;
@@ -63,21 +56,43 @@ export function computeStreak(
     }
   }
 
-  // Ongoing fast qualifies for today?
-  if (ongoingMs / 3_600_000 >= minHours) {
-    byDay.set(dayjs().startOf('day').format('YYYY-MM-DD'), true);
-  }
-
-  // Start from today if qualified; else from yesterday
   let day = dayjs().startOf('day');
-  if (!byDay.get(day.format('YYYY-MM-DD'))) {
-    day = day.subtract(1, 'day');
-  }
-
   let streak = 0;
   while (byDay.get(day.format('YYYY-MM-DD'))) {
     streak++;
     day = day.subtract(1, 'day');
   }
   return streak;
+}
+
+/** Best streak ever: longest run of consecutive days (anywhere in history) with a completed fast ≥ minHours. */
+export function computeBestStreak(
+  fasts: { endAt?: number; startAt: number }[],
+  minHours = 16
+) {
+  // mark each day that qualifies
+  const days = new Set<string>();
+  for (const f of fasts) {
+    if (!f.endAt) continue;
+    const hours = (f.endAt - f.startAt) / 3_600_000;
+    if (hours >= minHours) {
+      days.add(dayjs(f.endAt).startOf('day').format('YYYY-MM-DD'));
+    }
+  }
+  if (days.size === 0) return 0;
+
+  // turn set into sorted array of dayjs objects
+  const sorted = [...days].map(d => dayjs(d)).sort((a,b) => a.valueOf() - b.valueOf());
+
+  let best = 1, cur = 1;
+  for (let i = 1; i < sorted.length; i++) {
+    if (sorted[i].diff(sorted[i-1], 'day') === 1) {
+      cur++;
+    } else {
+      best = Math.max(best, cur);
+      cur = 1;
+    }
+  }
+  best = Math.max(best, cur);
+  return best;
 }
