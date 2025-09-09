@@ -14,7 +14,8 @@ import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
 
 import TimerRing from './components/TimerRing';
 import PhaseList from './components/PhaseList';
-import HistoryBarChart from './components/HistoryBarChart';
+//import HistoryBarChart from './components/HistoryBarChart';
+import MonthlyCalendar from './components/MonthlyCalendar';
 import StreakCard from './components/StreakCard';
 import PastFastsList from './components/PastFastsList';
 import GlassCard from './components/GlassCard';
@@ -188,7 +189,7 @@ export default function App() {
             </Stack>
           </Stack>
           <Box sx={{ mt: 1 }}>
-            <HistoryBarChart data={historyData} />
+            <MonthlyCalendar fasts={fasts} minHours={16} />
           </Box>
         </GlassCard>
 
