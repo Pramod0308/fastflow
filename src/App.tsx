@@ -7,23 +7,21 @@ import {
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import PlayArrowIcon from '@mui/icons-material/PlayArrow';
 import StopIcon from '@mui/icons-material/Stop';
-import HistoryIcon from '@mui/icons-material/History';
 import SettingsIcon from '@mui/icons-material/Settings';
 import EditCalendarIcon from '@mui/icons-material/EditCalendar';
 import EmojiEventsIcon from '@mui/icons-material/EmojiEvents';
+import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 
 import TimerRing from './components/TimerRing';
 import PhaseList from './components/PhaseList';
-//import HistoryBarChart from './components/HistoryBarChart';
-import MonthlyCalendar from './components/MonthlyCalendar';
 import StreakCard from './components/StreakCard';
-import PastFastsList from './components/PastFastsList';
 import GlassCard from './components/GlassCard';
+import MonthlyCalendar from './components/MonthlyCalendar';
 
 import { useStore } from './state/store';
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
-import { last7DaysBuckets, msToH, prettyHms, computeStreak, computeBestStreak, PHASES } from './lib/stats';
+import { msToH, prettyHms, computeStreak, computeBestStreak, PHASES, last7DaysBuckets } from './lib/stats';
 dayjs.extend(duration);
 
 const PLAN_TO_HOURS: Record<string, number> = { '16/8': 16, '20/4': 20, 'Custom': 16 };
@@ -48,10 +46,9 @@ export default function App() {
   const eatingElapsedText = prettyHms(eatingElapsedMs);
   const eatingTarget = settings.eatingTargetHours || 8;
 
-  // Stats + stage
-  const historyData = useMemo(() => last7DaysBuckets(fasts), [fasts]);
+  // Stats (streaks) + stage for ring
   const streak = useMemo(() => computeStreak(fasts, 16), [fasts]);         // completed fasts ≥16h
-  const bestStreak = useMemo(() => computeBestStreak(fasts, 16), [fasts]);     // best ever
+  const bestStreak = useMemo(() => computeBestStreak(fasts, 16), [fasts]); // best ever
   const stage = useMemo(() => {
     const reached = PHASES.filter(p => hours >= p.hours);
     return reached[reached.length - 1];
@@ -176,26 +173,25 @@ export default function App() {
           <PhaseList hours={hours} />
         </GlassCard>
 
-        {/* STATS */}
-        <GlassCard title="Stats" defaultExpanded right={<HistoryIcon fontSize="small" />}>
-          <Stack direction="row" spacing={3} alignItems="center" sx={{ mb: 1, px: 1 }}>
+        {/* STREAK (separate card) */}
+        <GlassCard title="Streak" defaultExpanded>
+          <Stack direction="row" spacing={3} alignItems="center" sx={{ px: 1 }}>
             <StreakCard count={streak} />
             <Stack direction="row" spacing={1} alignItems="center">
               <EmojiEventsIcon color="warning" />
               <Box>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>{bestStreak} days</Typography>
+                <Typography variant="h6" sx={{ fontWeight: 800 }}>{bestStreak} day{bestStreak === 1 ? '' : 's'}</Typography>
                 <Typography variant="body2" color="text.secondary">Best streak</Typography>
               </Box>
             </Stack>
           </Stack>
+        </GlassCard>
+
+        {/* TRACKING (monthly calendar) */}
+        <GlassCard title="Tracking" defaultExpanded right={<CalendarMonthIcon fontSize="small" />}>
           <Box sx={{ mt: 1 }}>
             <MonthlyCalendar fasts={fasts} minHours={16} />
           </Box>
-        </GlassCard>
-
-        {/* HISTORY */}
-        <GlassCard title="History" defaultExpanded>
-          <PastFastsList />
         </GlassCard>
       </Container>
 
