@@ -15,19 +15,16 @@ import type { Fast } from '../types';
 
 type Props = {
   fasts: Fast[];
-  /** threshold for a “green ✅ day” */
+  /** threshold for a “green day” (completed fast >= minHours) */
   minHours?: number;
   /** 0: Sunday, 1: Monday */
   weekStartsOn?: 0 | 1;
-  /** hide numbers for adjacent (prev/next month) days */
-  hideAdjacentDates?: boolean;
 };
 
 export default function MonthlyCalendar({
   fasts,
   minHours = 16,
-  weekStartsOn = 0,
-  hideAdjacentDates = true
+  weekStartsOn = 0
 }: Props) {
   const [month, setMonth] = useState(dayjs().startOf('month'));
   const [selected, setSelected] = useState<null | dayjs.Dayjs>(null);
@@ -46,44 +43,31 @@ export default function MonthlyCalendar({
     return m;
   }, [fasts]);
 
-  // build 6x7 grid (bug fixed: trailing days use a fixed base, not a moving length)
+  // Only render days that belong to the current month (no leading/trailing cells).
+  // Use gridColumnStart on day 1 so weekday alignment is preserved without placeholders.
   const days = useMemo(() => {
     const first = month.startOf('month');
-    const last = month.endOf('month');
-    const lead = (first.day() - weekStartsOn + 7) % 7;
-
-    const grid: { date: dayjs.Dayjs; inMonth: boolean }[] = [];
-    // leading days (previous month)
-    for (let i = 0; i < lead; i++) {
-      grid.push({ date: first.subtract(lead - i, 'day'), inMonth: false });
-    }
-    // current month
-    for (let d = 0; d < last.date(); d++) {
-      grid.push({ date: first.add(d, 'day'), inMonth: true });
-    }
-    // trailing days (next month) — FIX: use constant base
-    const fillStart = grid.length;
-    const total = Math.ceil(grid.length / 7) * 7; // 5 or 6 weeks
-    const trailing = total - fillStart;
-    for (let i = 0; i < trailing; i++) {
-      grid.push({ date: last.add(i + 1, 'day'), inMonth: false });
-    }
-    return grid;
+    const total = month.daysInMonth();
+    const startCol = ((first.day() - weekStartsOn + 7) % 7) + 1; // 1..7 for CSS grid
+    return Array.from({ length: total }, (_, i) => {
+      const date = first.add(i, 'day');
+      return { date, colStart: i === 0 ? startCol : undefined };
+    });
   }, [month, weekStartsOn]);
 
-  // day status
+  // status helpers
+  const dayList = (d: dayjs.Dayjs) => byDay.get(d.format('YYYY-MM-DD')) ?? [];
   const statusOf = (d: dayjs.Dayjs) => {
-    const list = byDay.get(d.format('YYYY-MM-DD')) ?? [];
+    const list = dayList(d);
     if (list.some(x => x.hours >= minHours)) return 'success' as const;
     if (list.length > 0) return 'partial' as const;
     return 'none' as const;
   };
-  const hasData = (d: dayjs.Dayjs) => (byDay.get(d.format('YYYY-MM-DD')) ?? []).length > 0;
+  const hasData = (d: dayjs.Dayjs) => dayList(d).length > 0;
 
   const openDetails = (d: dayjs.Dayjs) => setSelected(d);
   const closeDetails = () => setSelected(null);
 
-  // header
   const header = (
     <Stack direction="row" alignItems="center" justifyContent="space-between" sx={{ mb: 1 }}>
       <IconButton onClick={() => setMonth(m => m.subtract(1, 'month'))}><ChevronLeftIcon /></IconButton>
@@ -109,7 +93,7 @@ export default function MonthlyCalendar({
     <Box>
       {header}
 
-      {/* Weekday row */}
+      {/* Weekday header */}
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', px: 0.5, mb: 0.5 }}>
         {dow.map((name) => (
           <Typography key={name} variant="caption" color="text.secondary" sx={{ textAlign: 'center', py: 0.5 }}>
@@ -118,29 +102,33 @@ export default function MonthlyCalendar({
         ))}
       </Box>
 
-      {/* Calendar grid */}
+      {/* Calendar grid (only real days) */}
       <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 0.75 }}>
-        {days.map(({ date, inMonth }) => {
+        {days.map(({ date, colStart }) => {
           const key = date.format('YYYY-MM-DD');
           const status = statusOf(date);
           const interactive = hasData(date);
           const today = date.isSame(dayjs(), 'day');
 
-          // visuals
-          const bg =
+          // Visuals — ALWAYS readable day number
+          const styles =
             status === 'success'
-              ? 'linear-gradient(135deg, rgba(165,214,167,0.85), rgba(38,166,154,0.85))'
-              : 'rgba(255,255,255,0.75)';
-
-          const border =
-            status === 'success'
-              ? '1px solid rgba(38,166,154,0.7)'
-              : today
-                ? '2px solid rgba(0,137,123,.65)'
-                : '1px solid rgba(0,0,0,0.06)';
+              ? {
+                  // proper gradient background and dark text for contrast
+                  background: 'linear-gradient(135deg, #CFF6E8 0%, #A7E7DB 100%)',
+                  color: '#0B3B33',
+                  border: '1px solid rgba(38,166,154,0.70)',
+                  boxShadow: '0 10px 22px rgba(38,166,154,0.22)',
+                }
+              : {
+                  backgroundColor: 'rgba(255,255,255,0.92)',
+                  color: 'var(--mui-palette-text-primary)',
+                  border: today ? '2px solid rgba(0,137,123,.65)' : '1px solid rgba(0,0,0,0.06)',
+                  boxShadow: '0 6px 18px rgba(0,0,0,0.06)',
+                };
 
           return (
-            <Fade in timeout={220} key={key}>
+            <Fade in timeout={200} key={key}>
               <Tooltip
                 title={interactive ? 'View fasts for this day' : ''}
                 arrow
@@ -149,6 +137,7 @@ export default function MonthlyCalendar({
                 <Box
                   onClick={() => interactive && openDetails(date)}
                   sx={{
+                    gridColumnStart: colStart,
                     position: 'relative',
                     height: 44,
                     borderRadius: 999,
@@ -157,45 +146,26 @@ export default function MonthlyCalendar({
                     cursor: interactive ? 'pointer' : 'default',
                     userSelect: 'none',
                     transition: 'transform .12s ease, box-shadow .12s ease, background .12s ease',
-                    bgcolor: bg,
-                    border,
-                    boxShadow:
-                      status === 'success'
-                        ? '0 10px 24px rgba(38,166,154,0.30)'
-                        : '0 6px 18px rgba(0,0,0,0.06)',
-                    opacity: inMonth ? 1 : (hideAdjacentDates ? 0.25 : 0.55),
+                    ...styles,
                     '&:hover': interactive ? { transform: 'translateY(-2px)', boxShadow: '0 12px 26px rgba(0,0,0,0.12)' } : {},
                     backdropFilter: 'blur(6px)',
                   }}
                 >
-                  {/* day number (hidden for adjacent months if hideAdjacentDates) */}
-                  {inMonth || !hideAdjacentDates ? (
-                    <Typography
-                      variant="subtitle2"
-                      sx={{
-                        fontWeight: 900,
-                        lineHeight: 1,
-                        color: status === 'success' ? '#fff' : 'text.primary',
-                      }}
-                    >
-                      {date.date()}
-                    </Typography>
-                  ) : null}
+                  <Typography variant="subtitle2" sx={{ fontWeight: 900, lineHeight: 1 }}>
+                    {date.date()}
+                  </Typography>
 
                   {/* success checkmark */}
                   {status === 'success' && (
                     <CheckCircleRoundedIcon
-                      sx={{ position: 'absolute', right: 6, bottom: 6, fontSize: 16, color: '#fff', opacity: 0.95 }}
+                      sx={{ position: 'absolute', right: 6, bottom: 6, fontSize: 16, color: '#0B3B33', opacity: 0.8 }}
                     />
                   )}
 
                   {/* partial dot */}
                   {status === 'partial' && (
                     <RadioButtonUncheckedIcon
-                      sx={{
-                        position: 'absolute', right: 8, bottom: 8, fontSize: 10,
-                        color: 'warning.main', opacity: 0.9
-                      }}
+                      sx={{ position: 'absolute', right: 8, bottom: 8, fontSize: 10, color: 'warning.main', opacity: 0.9 }}
                     />
                   )}
                 </Box>
