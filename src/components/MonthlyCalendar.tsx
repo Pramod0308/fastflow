@@ -8,7 +8,6 @@ import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import TodayIcon from '@mui/icons-material/Today';
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import EventIcon from '@mui/icons-material/Event';
-import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import dayjs from 'dayjs';
 import type { Fast } from '../types';
@@ -43,8 +42,7 @@ export default function MonthlyCalendar({
     return m;
   }, [fasts]);
 
-  // Only render days that belong to the current month (no leading/trailing cells).
-  // Use gridColumnStart on day 1 so weekday alignment is preserved without placeholders.
+  // Only render this month's real days (no leading/trailing placeholders)
   const days = useMemo(() => {
     const first = month.startOf('month');
     const total = month.daysInMonth();
@@ -55,15 +53,15 @@ export default function MonthlyCalendar({
     });
   }, [month, weekStartsOn]);
 
-  // status helpers
-  const dayList = (d: dayjs.Dayjs) => byDay.get(d.format('YYYY-MM-DD')) ?? [];
+  // helpers
+  const listFor = (d: dayjs.Dayjs) => byDay.get(d.format('YYYY-MM-DD')) ?? [];
   const statusOf = (d: dayjs.Dayjs) => {
-    const list = dayList(d);
+    const list = listFor(d);
     if (list.some(x => x.hours >= minHours)) return 'success' as const;
     if (list.length > 0) return 'partial' as const;
     return 'none' as const;
   };
-  const hasData = (d: dayjs.Dayjs) => dayList(d).length > 0;
+  const hasData = (d: dayjs.Dayjs) => listFor(d).length > 0;
 
   const openDetails = (d: dayjs.Dayjs) => setSelected(d);
   const closeDetails = () => setSelected(null);
@@ -110,11 +108,10 @@ export default function MonthlyCalendar({
           const interactive = hasData(date);
           const today = date.isSame(dayjs(), 'day');
 
-          // Visuals — ALWAYS readable day number
+          // Readable number in all cases
           const styles =
             status === 'success'
               ? {
-                  // proper gradient background and dark text for contrast
                   background: 'linear-gradient(135deg, #CFF6E8 0%, #A7E7DB 100%)',
                   color: '#0B3B33',
                   border: '1px solid rgba(38,166,154,0.70)',
@@ -122,7 +119,7 @@ export default function MonthlyCalendar({
                 }
               : {
                   backgroundColor: 'rgba(255,255,255,0.92)',
-                  color: 'var(--mui-palette-text-primary)',
+                  color: 'text.primary',
                   border: today ? '2px solid rgba(0,137,123,.65)' : '1px solid rgba(0,0,0,0.06)',
                   boxShadow: '0 6px 18px rgba(0,0,0,0.06)',
                 };
@@ -155,14 +152,7 @@ export default function MonthlyCalendar({
                     {date.date()}
                   </Typography>
 
-                  {/* success checkmark */}
-                  {status === 'success' && (
-                    <CheckCircleRoundedIcon
-                      sx={{ position: 'absolute', right: 6, bottom: 6, fontSize: 16, color: '#0B3B33', opacity: 0.8 }}
-                    />
-                  )}
-
-                  {/* partial dot */}
+                  {/* partial dot (keep) */}
                   {status === 'partial' && (
                     <RadioButtonUncheckedIcon
                       sx={{ position: 'absolute', right: 8, bottom: 8, fontSize: 10, color: 'warning.main', opacity: 0.9 }}
